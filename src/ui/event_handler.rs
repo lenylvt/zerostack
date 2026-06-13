@@ -173,6 +173,7 @@ pub async fn handle_agent_event(
                 crate::ui::utils::format_tool_call_summary(&name, &args)
             );
             renderer.write_line(&sanitize_output(&line), C_TOOL)?;
+            renderer.write_line("", Color::White)?;
         }
         AgentEvent::SubagentToolCall { name, args } => {
             let line = format!(
@@ -180,6 +181,7 @@ pub async fn handle_agent_event(
                 crate::ui::utils::format_tool_call_summary(&name, &args)
             );
             renderer.write_line(&sanitize_output(&line), C_TOOL)?;
+            renderer.write_line("", Color::White)?;
         }
         AgentEvent::ToolResult { name, output } => {
             if name == "write_todo_list" {
@@ -253,6 +255,7 @@ pub async fn handle_agent_event(
                     }
                 }
             }
+            renderer.write_line("", Color::White)?;
         }
         AgentEvent::Done {
             response,
@@ -294,6 +297,7 @@ pub async fn handle_agent_event(
             *was_reasoning = false;
             let safe = sanitize_output(&e);
             renderer.write_line(&format!("error: {}", safe), C_ERROR)?;
+            renderer.write_line("", Color::White)?;
             *is_running = false;
             if let Some(ss) = status_signals.as_ref() {
                 ss.send_stop();
