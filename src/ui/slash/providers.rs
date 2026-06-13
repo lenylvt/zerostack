@@ -100,6 +100,7 @@ pub(crate) async fn warm_model_cache(
 async fn apply_model(ctx: &mut SlashCtx<'_>, model_id: &str) {
     let new_model = compact_str::CompactString::new(model_id);
     let model = ctx.client.completion_model(new_model.to_string());
+    let temperature = crate::config::resolve_temperature(ctx.cli, ctx.cfg, &new_model);
     *ctx.agent = Some(
         crate::provider::build_agent(
             model,
@@ -110,6 +111,7 @@ async fn apply_model(ctx: &mut SlashCtx<'_>, model_id: &str) {
             ctx.ask_tx.clone(),
             ctx.sandbox.clone(),
             *ctx.reasoning_enabled,
+            temperature,
             #[cfg(feature = "mcp")]
             ctx.mcp_manager,
         )
@@ -179,6 +181,7 @@ async fn handle_model(parts: &[&str], ctx: &mut SlashCtx<'_>) -> anyhow::Result<
     }
     let new_model = compact_str::CompactString::new(parts[1].trim());
     let model = ctx.client.completion_model(new_model.to_string());
+    let temperature = crate::config::resolve_temperature(ctx.cli, ctx.cfg, &new_model);
     *ctx.agent = Some(
         crate::provider::build_agent(
             model,
@@ -189,6 +192,7 @@ async fn handle_model(parts: &[&str], ctx: &mut SlashCtx<'_>) -> anyhow::Result<
             ctx.ask_tx.clone(),
             ctx.sandbox.clone(),
             *ctx.reasoning_enabled,
+            temperature,
             #[cfg(feature = "mcp")]
             ctx.mcp_manager,
         )

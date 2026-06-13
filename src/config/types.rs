@@ -13,6 +13,10 @@ pub struct QuickModelConfig {
     pub output_token_cost: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reserve_tokens: Option<u64>,
+    /// Per-model temperature override (0.0–2.0). Takes precedence over the
+    /// global `temperature` setting but is overridden by `--temperature`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

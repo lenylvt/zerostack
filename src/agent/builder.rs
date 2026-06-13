@@ -23,6 +23,7 @@ pub async fn build_agent_inner<M: CompletionModel + 'static>(
     ask_tx: Option<AskSender>,
     sandbox: Sandbox,
     reasoning_enabled: bool,
+    temperature: Option<f64>,
     // Provider-specific extra body params (e.g. OpenRouter `provider.order` to
     // pin Claude to the Anthropic direct route so `cache_control` is honored).
     // `None` for providers that need no extra routing.
@@ -129,9 +130,8 @@ pub async fn build_agent_inner<M: CompletionModel + 'static>(
     let max_turns = cli.resolve_max_agent_turns(cfg);
     builder = builder.default_max_turns(max_turns);
 
-    if let Some(temp) = cli.temperature {
-        let clamped = temp.clamp(0.0, 2.0);
-        builder = builder.temperature(clamped);
+    if let Some(temp) = temperature {
+        builder = builder.temperature(temp);
     }
 
     if cli.resolve_no_tools(cfg) {
@@ -273,6 +273,7 @@ pub fn build_btw_agent_inner<M: CompletionModel + 'static>(
     permission: &Option<PermCheck>,
     ask_tx: &Option<AskSender>,
     _reasoning_enabled: bool,
+    temperature: Option<f64>,
     // See `build_agent_inner`: OpenRouter `provider.order` pin for `anthropic/*`.
     additional_params: Option<serde_json::Value>,
 ) -> Agent<M> {
@@ -326,8 +327,8 @@ pub fn build_btw_agent_inner<M: CompletionModel + 'static>(
         if let Some(params) = additional_params.clone() {
             builder = builder.additional_params(params);
         }
-        if let Some(temp) = cli.temperature {
-            builder = builder.temperature(temp.clamp(0.0, 2.0));
+        if let Some(temp) = temperature {
+            builder = builder.temperature(temp);
         }
         return builder.build();
     }
@@ -375,8 +376,8 @@ pub fn build_btw_agent_inner<M: CompletionModel + 'static>(
         builder = builder.additional_params(params);
     }
 
-    if let Some(temp) = cli.temperature {
-        builder = builder.temperature(temp.clamp(0.0, 2.0));
+    if let Some(temp) = temperature {
+        builder = builder.temperature(temp);
     }
 
     builder.build()

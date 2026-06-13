@@ -614,6 +614,7 @@ async fn main() -> anyhow::Result<()> {
                 eprintln!("error: empty command after '!'");
             }
         } else {
+            let temperature = config::resolve_temperature(&cli, &cfg, &model);
             let agent = provider::build_agent(
                 completion_model,
                 &cli,
@@ -623,6 +624,7 @@ async fn main() -> anyhow::Result<()> {
                 ask_tx,
                 sandbox.clone(),
                 true,
+                temperature,
                 #[cfg(feature = "mcp")]
                 None,
             )
@@ -661,9 +663,10 @@ async fn main() -> anyhow::Result<()> {
     } else {
         #[cfg(feature = "loop")]
         if cli.loop_mode {
-            let model = client.completion_model(model.to_string());
+            let model_completion = client.completion_model(model.to_string());
+            let temperature = config::resolve_temperature(&cli, &cfg, &model);
             let agent = provider::build_agent(
-                model,
+                model_completion,
                 &cli,
                 &cfg,
                 &context,
@@ -671,6 +674,7 @@ async fn main() -> anyhow::Result<()> {
                 ask_tx,
                 sandbox.clone(),
                 true,
+                temperature,
                 #[cfg(feature = "mcp")]
                 None,
             )
@@ -770,7 +774,7 @@ fn print_config(cli: &cli::Cli, cfg: &config::Config) {
     let max_tokens = cli.resolve_max_tokens(cfg);
     let max_agent_turns = cli.resolve_max_agent_turns(cfg);
     let context_window = cfg.resolve_context_window(&provider, &model);
-    let temperature = cli.temperature.or(cfg.temperature);
+    let temperature = config::resolve_temperature(cli, cfg, &model);
     let no_tools = cli.resolve_no_tools(cfg);
     let no_context_files = cli.resolve_no_context_files(cfg);
     let sandbox = cli.resolve_sandbox(cfg);

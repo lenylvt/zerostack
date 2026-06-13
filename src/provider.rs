@@ -746,6 +746,7 @@ async fn build_openai_agent(
     ask_tx: Option<AskSender>,
     sandbox: Sandbox,
     reasoning_enabled: bool,
+    temperature: Option<f64>,
     #[cfg(feature = "mcp")] mcp_manager: Option<&McpClientManager>,
 ) -> OpenAiAgent {
     match model {
@@ -759,6 +760,7 @@ async fn build_openai_agent(
                 ask_tx,
                 sandbox,
                 reasoning_enabled,
+                temperature,
                 None,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
@@ -775,6 +777,7 @@ async fn build_openai_agent(
                 ask_tx,
                 sandbox,
                 reasoning_enabled,
+                temperature,
                 None,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
@@ -794,6 +797,7 @@ pub async fn build_agent(
     ask_tx: Option<AskSender>,
     sandbox: Sandbox,
     reasoning_enabled: bool,
+    temperature: Option<f64>,
     #[cfg(feature = "mcp")] mcp_manager: Option<&McpClientManager>,
 ) -> AnyAgent {
     match model {
@@ -807,6 +811,7 @@ pub async fn build_agent(
                 ask_tx,
                 sandbox.clone(),
                 reasoning_enabled,
+                temperature,
                 extra,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
@@ -823,6 +828,7 @@ pub async fn build_agent(
                 ask_tx,
                 sandbox.clone(),
                 reasoning_enabled,
+                temperature,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
             )
@@ -838,6 +844,7 @@ pub async fn build_agent(
                 ask_tx,
                 sandbox.clone(),
                 reasoning_enabled,
+                temperature,
                 None,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
@@ -854,6 +861,7 @@ pub async fn build_agent(
                 ask_tx,
                 sandbox.clone(),
                 reasoning_enabled,
+                temperature,
                 None,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
@@ -870,6 +878,7 @@ pub async fn build_agent(
                 ask_tx,
                 sandbox,
                 reasoning_enabled,
+                temperature,
                 None,
                 #[cfg(feature = "mcp")]
                 mcp_manager,
@@ -888,6 +897,7 @@ pub fn build_btw_agent(
     permission: &Option<PermCheck>,
     ask_tx: &Option<AskSender>,
     reasoning_enabled: bool,
+    temperature: Option<f64>,
 ) -> AnyAgent {
     match model {
         AnyModel::OpenRouter(m, extra) => AnyAgent::OpenRouter(builder::build_btw_agent_inner(
@@ -898,6 +908,7 @@ pub fn build_btw_agent(
             permission,
             ask_tx,
             reasoning_enabled,
+            temperature,
             extra,
         )),
         AnyModel::OpenAI(m) => AnyAgent::OpenAI(match m {
@@ -909,6 +920,7 @@ pub fn build_btw_agent(
                 permission,
                 ask_tx,
                 reasoning_enabled,
+                temperature,
                 None,
             )),
             OpenAiModel::Completions(m) => {
@@ -920,6 +932,7 @@ pub fn build_btw_agent(
                     permission,
                     ask_tx,
                     reasoning_enabled,
+                    temperature,
                     None,
                 ))
             }
@@ -932,6 +945,7 @@ pub fn build_btw_agent(
             permission,
             ask_tx,
             reasoning_enabled,
+            temperature,
             None,
         )),
         AnyModel::Gemini(m) => AnyAgent::Gemini(builder::build_btw_agent_inner(
@@ -942,6 +956,7 @@ pub fn build_btw_agent(
             permission,
             ask_tx,
             reasoning_enabled,
+            temperature,
             None,
         )),
         AnyModel::Ollama(m) => AnyAgent::Ollama(builder::build_btw_agent_inner(
@@ -952,6 +967,7 @@ pub fn build_btw_agent(
             permission,
             ask_tx,
             reasoning_enabled,
+            temperature,
             None,
         )),
     }

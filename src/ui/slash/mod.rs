@@ -54,6 +54,8 @@ pub struct SlashCtx<'a> {
 impl SlashCtx<'_> {
     pub async fn rebuild_agent(&mut self) {
         let model = self.client.completion_model(self.session.model.to_string());
+        let temperature =
+            crate::config::resolve_temperature(self.cli, self.cfg, &self.session.model);
         #[cfg(feature = "advisor")]
         {
             crate::extras::advisor::update_client(self.client.clone());
@@ -69,6 +71,7 @@ impl SlashCtx<'_> {
                 self.ask_tx.clone(),
                 self.sandbox.clone(),
                 *self.reasoning_enabled,
+                temperature,
                 #[cfg(feature = "mcp")]
                 self.mcp_manager,
             )
@@ -88,6 +91,8 @@ impl SlashCtx<'_> {
             self.cfg.api_keys.as_ref(),
         )?;
         let model = self.client.completion_model(self.session.model.to_string());
+        let temperature =
+            crate::config::resolve_temperature(self.cli, self.cfg, &self.session.model);
         #[cfg(feature = "advisor")]
         {
             crate::extras::advisor::update_client(self.client.clone());
@@ -103,6 +108,7 @@ impl SlashCtx<'_> {
                 self.ask_tx.clone(),
                 self.sandbox.clone(),
                 new_reasoning,
+                temperature,
                 #[cfg(feature = "mcp")]
                 self.mcp_manager,
             )
@@ -218,6 +224,7 @@ pub async fn handle_compress(
     session.compress(summary, cut_idx, tokens_before);
 
     let model = client.completion_model(session.model.to_string());
+    let temperature = crate::config::resolve_temperature(cli, cfg, &session.model);
     *agent = Some(
         crate::provider::build_agent(
             model,
@@ -228,6 +235,7 @@ pub async fn handle_compress(
             ask_tx.clone(),
             sandbox.clone(),
             reasoning_enabled,
+            temperature,
             #[cfg(feature = "mcp")]
             mcp_manager,
         )

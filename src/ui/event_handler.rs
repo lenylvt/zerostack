@@ -40,6 +40,7 @@ pub async fn ensure_agent(
         return;
     }
     let model = client.completion_model(session.model.to_string());
+    let temperature = crate::config::resolve_temperature(cli, cfg, &session.model);
     *agent = Some(
         crate::provider::build_agent(
             model,
@@ -50,6 +51,7 @@ pub async fn ensure_agent(
             ask_tx.clone(),
             sandbox.clone(),
             reasoning_enabled,
+            temperature,
             mcp_manager,
         )
         .await,
@@ -74,6 +76,7 @@ pub async fn ensure_agent(
         return;
     }
     let model = client.completion_model(session.model.to_string());
+    let temperature = crate::config::resolve_temperature(cli, cfg, &session.model);
     *agent = Some(
         crate::provider::build_agent(
             model,
@@ -84,6 +87,7 @@ pub async fn ensure_agent(
             ask_tx.clone(),
             sandbox.clone(),
             reasoning_enabled,
+            temperature,
         )
         .await,
     );
@@ -487,6 +491,7 @@ async fn handle_agent_done(
             let prompt = ls.build_prompt();
             *agent = Some({
                 let model = client.completion_model(session.model.to_string());
+                let temperature = crate::config::resolve_temperature(cli, cfg, &session.model);
                 crate::provider::build_agent(
                     model,
                     cli,
@@ -496,6 +501,7 @@ async fn handle_agent_done(
                     ask_tx.clone(),
                     sandbox.clone(),
                     true,
+                    temperature,
                     #[cfg(feature = "mcp")]
                     mcp_manager,
                 )
@@ -533,6 +539,7 @@ async fn handle_agent_done(
                 apply_current_prompt_mode(context, permission);
                 *agent = Some({
                     let model = client.completion_model(session.model.to_string());
+                    let temperature = crate::config::resolve_temperature(cli, cfg, &session.model);
                     crate::provider::build_agent(
                         model,
                         cli,
@@ -542,6 +549,7 @@ async fn handle_agent_done(
                         ask_tx.clone(),
                         sandbox.clone(),
                         true,
+                        temperature,
                         #[cfg(feature = "mcp")]
                         mcp_manager,
                     )

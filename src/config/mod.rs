@@ -220,6 +220,27 @@ impl Config {
         self.keep_recent_tokens.unwrap_or(10_000)
     }
 
+    /// Resolves temperature: CLI `--temperature` > quick-model `temperature` >
+    /// global `temperature`. Returns `None` when no temperature is configured.
+    pub fn resolve_temperature(
+        &self,
+        cli: &crate::cli::Cli,
+        model_id: &str,
+        qm: &HashMap<String, types::QuickModelConfig>,
+    ) -> Option<f64> {
+        if let Some(temp) = cli.temperature {
+            return Some(temp.clamp(0.0, 2.0));
+        }
+        for qmc in qm.values() {
+            if qmc.model.as_str() == model_id {
+                if let Some(temp) = qmc.temperature {
+                    return Some(temp.clamp(0.0, 2.0));
+                }
+            }
+        }
+        self.temperature.map(|t| t.clamp(0.0, 2.0))
+    }
+
     pub fn resolve_compact_enabled(&self) -> bool {
         self.compact_enabled.unwrap_or(true)
     }
@@ -340,6 +361,12 @@ pub enum ResolvedShowToolDetails {
     Off,
     Limited(usize),
     Unlimited,
+}
+
+/// Convenience: resolves temperature with all sources (CLI, quick model, global config).
+pub fn resolve_temperature(cli: &crate::cli::Cli, cfg: &Config, model_id: &str) -> Option<f64> {
+    let qm = quick_models_map(cfg);
+    cfg.resolve_temperature(cli, model_id, &qm)
 }
 
 impl ShowToolDetails {
