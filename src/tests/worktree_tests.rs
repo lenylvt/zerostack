@@ -149,14 +149,14 @@ mod tests {
         );
     }
 
-    fn git_ok(dir: &std::path::Path, args: &[&str]) -> bool {
+    /*fn git_ok(dir: &std::path::Path, args: &[&str]) -> bool {
         Command::new("git")
             .arg("-C")
             .arg(dir)
             .args(args)
             .output()
             .is_ok_and(|o| o.status.success())
-    }
+    }*/
 
     #[test]
     fn test_worktree_info_clone() {

@@ -534,7 +534,7 @@ pub fn complete_merge_force(state: &MergeState) -> Result<(), String> {
     complete_merge_with_force(state, true)
 }
 
-fn complete_merge_with_force(state: &MergeState, force: bool) -> Result<(), String> {
+fn complete_merge_with_force(state: &MergeState, _force: bool) -> Result<(), String> {
     let mut guard = ChdirGuard::new(&state.info.main_repo_path)?;
 
     let result = (|| {
