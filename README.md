@@ -447,8 +447,8 @@ The worktrees integrations offers 3 slash commands:
 
 | Command              | Description                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `/worktree <name>`   | Create a git worktree on branch `<name>` and move into it (skips creating it if it already exists)                |
-| `/wt-merge [branch]` | Merge the worktree branch into `[branch]` (default: `main`/`master`), push, clean up, and return to the main repo |
+| `/worktree <name>`   | Create a git worktree on a new branch `<name>` and move into it. Fails if the branch exists or the target path is occupied |
+| `/wt-merge [branch]` | Merge the worktree branch into `[branch]` (default: `main`/`master`), clean up, and return to the main repo. Does not push — run `git push` yourself |
 | `/wt-exit`           | Return to the main repo without merging                                                                           |
 
 ### Example workflow for git worktrees
@@ -462,25 +462,40 @@ The worktrees integrations offers 3 slash commands:
 
 When you quit zerostack while in a worktree, the `--wt-auto-merge` flag
 (or `--parallel`, which implies it) causes zerostack to attempt merging the
-worktree branch before exiting.
+worktree branch before exiting. The merge is a local `--squash` merge and is
+never pushed — run `git push` yourself afterwards.
 
-- **Clean merge**: completes silently (merge, push, remove worktree, delete branch).
+- **Clean merge**: completes silently (merge, remove worktree, delete branch).
 - **Merge conflicts**: zerostack lists conflicting files and prompts:
   ```
   [a]bort  [l]eave for manual resolution  [h]elp (agent resolves)
   ```
-  - `a` – abort the merge, restore clean state, do not delete the worktree.
-  - `l` – leave the conflict state in the main repo for manual `git mergetool`.
+  - `a` – abort the merge, restore clean state, keep the worktree and branch.
+  - `l` – leave the conflict state in the main repo for manual `git mergetool`
+    (pre-merge main-repo changes stay stashed; `git stash pop` after resolving).
   - `h` – abort the merge, then spawn the agent to redo the merge with
     interactive conflict-resolution guidance (same as `/wt-merge`).
 
+### Worktree notes
+
+- Names are single words: no spaces, slashes, or leading dashes (also used as
+  the worktree directory name). Existing branches are rejected — pick another name.
+- The base directory defaults to the parent of the repo (`--wt-base-dir` overrides).
+- Uncommitted worktree changes: `[c]` auto-commits tracked files only
+  (untracked files are skipped, commit them manually); `[a]` aborts.
+- `--wt-force` lets cleanup remove a dirty worktree and delete the branch
+  even when not fully merged. Without it, cleanup refuses dirty state.
+- Detached-HEAD worktrees cannot merge (no branch); check out a branch first.
+- `pull` during merge is best-effort: local-only `main`/`master` with no
+  upstream merges fine without it.
+
 | Flag | Description |
 |------|-------------|
-| `--worktree <name>` | Create a worktree on branch `<name>` and `cd` into it. |
+| `--worktree <name>` | Create a worktree on branch `<name>` and `cd` into it. Mutually exclusive with `--parallel` (which wins with a warning). |
 | `--wt-auto-merge`   | Auto-merge worktree branch on exit. |
-| `--parallel`        | Create a timestamped worktree with auto-merge on exit. |
+| `--parallel`        | Create a timestamped worktree (`wt-<ts>-<pid>`) with auto-merge on exit. |
 | `--wt-force`        | Force worktree remove and branch delete (`-D`) even if dirty. |
-| `--wt-base-dir <dir>` | Base directory for worktrees (default: parent of repo). |
+| `--wt-base-dir <dir>` | Base directory for worktrees (default: parent of repo; created if missing). |
 
 ## ACP (Agent Communication Protocol) support
 

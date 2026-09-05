@@ -130,3 +130,27 @@ mod tools_mod_tests;
 mod tui_loop_tests;
 #[cfg(all(test, feature = "git-worktree"))]
 mod worktree_tests;
+
+/// Process-global CWD serialisation for tests.
+///
+/// `std::env::set_current_dir` is process-global: concurrent tests that
+/// mutate CWD observe each other's directories, including ones already
+/// deleted — which makes even `current_dir()` itself fail. Any test that
+/// mutates CWD must hold this lock for its whole body; readers that only
+/// *assert* on CWD (`slash_add`) must hold it too while computing the
+/// expectation. Declared here (rather than per-file) so every such test
+/// shares one lock.
+///
+/// NOTE: this deliberately does NOT cover the TUI loop tests
+/// (`tui_loop_tests`, `headless_*`, `parallel_tool_call_tests`):
+/// those never chdir, so they don't need it.
+#[cfg(test)]
+static CWD_LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
+
+#[cfg(test)]
+pub(crate) fn acquire_cwd() -> std::sync::MutexGuard<'static, ()> {
+    CWD_LOCK
+        .get_or_init(|| std::sync::Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+}

@@ -204,8 +204,8 @@ Requires the `subagents` feature (default-on; see [SUBAGENTS.md](SUBAGENTS.md)).
 
 | Command | Description |
 | ------- | ----------- |
-| `/worktree <name>` | Create a git worktree on a new branch and `cd` into it. |
-| `/wt-merge [branch]` | Merge the worktree branch back into the target branch. |
+| `/worktree <name>` | Create a git worktree on a new branch and `cd` into it. Rejects existing branches and occupied paths; names are single words (no spaces, slashes, leading dashes). |
+| `/wt-merge [branch]` | Merge the worktree branch back into the target branch (local `--squash` merge, no push). The worktree/branch are removed only after the merge is verified; aborts keep everything. |
 | `/wt-exit` | Exit the worktree and return to the main repo. |
 
 ## Loop (feature-gated)

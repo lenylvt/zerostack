@@ -98,9 +98,7 @@ pub fn changed_files(dir: &Path) -> Vec<String> {
 #[allow(unsafe_code)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
-
-    static TEST_MUTEX: Mutex<()> = Mutex::new(());
+    use crate::tests::acquire_cwd;
 
     struct TestDir {
         dir: PathBuf,
@@ -110,7 +108,9 @@ mod tests {
 
     impl TestDir {
         fn new() -> Self {
-            let lock = TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+            // Shared process-wide CWD lock (see tests::acquire_cwd):
+            // worktree tests chdir concurrently and must not interleave.
+            let lock = acquire_cwd();
             let dir = std::env::temp_dir().join(format!("zs_pr_test_{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();

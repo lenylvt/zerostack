@@ -207,7 +207,7 @@ pub(crate) struct ChainState {
     #[cfg(feature = "loop")]
     pub loop_state: Option<crate::extras::r#loop::LoopState>,
     #[cfg(feature = "git-worktree")]
-    pub wt_return_path: Option<(String, String, String, bool)>,
+    pub wt_return_path: Option<crate::ui::WtReturn>,
 }
 
 /// User-facing feature toggles owned by slash commands.

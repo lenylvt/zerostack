@@ -272,63 +272,75 @@ impl<'a> App<'a> {
         }
 
         #[cfg(feature = "git-worktree")]
-        if let Some(name) = &ui.cli.worktree {
-            let wt_base_dir = ui.cli.resolve_wt_base_dir(ui.cfg);
-            match crate::extras::git_worktree::create(name, wt_base_dir.as_deref()) {
-                Ok((path, _info)) => {
-                    std::env::set_current_dir(&path).ok();
-                    ui.session.working_dir =
-                        compact_str::CompactString::new(path.to_string_lossy());
-                    ui.context.reload();
-                    apply_current_prompt_mode(ui.context, &ui.permission);
-                    #[cfg(feature = "mcp")]
-                    ensure_mcp_manager(&mut ui.mcp_manager, ui.cfg).await;
-                    run.agent = Some(
-                        ui.agent_build_ctx()
-                            .rebuild_agent(&ui.session.model, slash.reasoning_enabled)
-                            .await,
-                    );
-                    if let Err(e) =
-                        render_session(&mut renderer, ui.session, ui.cli, ui.cfg, ui.context)
-                    {
-                        tracing::warn!("failed to re-render session after worktree switch: {e}");
-                    }
-                }
-                Err(e) => {
-                    let _ = renderer.write_line(&format!("worktree failed: {}", e), C_ERROR);
-                }
+        {
+            // `--worktree <name>` and `--parallel` both create a worktree;
+            // running both would create two and silently keep the second.
+            // `--parallel` wins with a warning when both are given.
+            let parallel_name: Option<String> = if ui.cli.parallel {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                // Timestamp alone collides when two instances start in the
+                // same second; fold in the pid so parallel agents don't fight
+                // over one worktree name.
+                Some(format!("wt-{}-{}", ts, std::process::id()))
+            } else {
+                None
+            };
+            if ui.cli.parallel && ui.cli.worktree.is_some() {
+                let _ = renderer.write_line(
+                    "warning: both --worktree and --parallel were given; using --parallel",
+                    C_ERROR,
+                );
             }
-        }
-        #[cfg(feature = "git-worktree")]
-        if ui.cli.parallel {
-            let ts = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0);
-            let name = ts.to_string();
-            let wt_base_dir = ui.cli.resolve_wt_base_dir(ui.cfg);
-            match crate::extras::git_worktree::create(&name, wt_base_dir.as_deref()) {
-                Ok((path, _info)) => {
-                    std::env::set_current_dir(&path).ok();
-                    ui.session.working_dir =
-                        compact_str::CompactString::new(path.to_string_lossy());
-                    ui.context.reload();
-                    apply_current_prompt_mode(ui.context, &ui.permission);
-                    #[cfg(feature = "mcp")]
-                    ensure_mcp_manager(&mut ui.mcp_manager, ui.cfg).await;
-                    run.agent = Some(
-                        ui.agent_build_ctx()
-                            .rebuild_agent(&ui.session.model, slash.reasoning_enabled)
-                            .await,
-                    );
-                    if let Err(e) =
-                        render_session(&mut renderer, ui.session, ui.cli, ui.cfg, ui.context)
-                    {
-                        tracing::warn!("failed to re-render session after worktree switch: {e}");
-                    }
-                }
-                Err(e) => {
+            let requested: Option<String> = parallel_name.or_else(|| ui.cli.worktree.clone());
+            if let Some(name) = requested {
+                if let Err(e) = crate::extras::git_worktree::validate_branch_name(&name) {
                     let _ = renderer.write_line(&format!("worktree failed: {}", e), C_ERROR);
+                } else {
+                    let wt_base_dir = ui.cli.resolve_wt_base_dir(ui.cfg);
+                    match crate::extras::git_worktree::create(&name, wt_base_dir.as_deref()) {
+                        Ok((path, _info)) => {
+                            if let Err(e) = std::env::set_current_dir(&path) {
+                                let _ = renderer.write_line(
+                                    &format!(
+                                        "worktree created at {} but cd failed: {}",
+                                        path.display(),
+                                        e
+                                    ),
+                                    C_ERROR,
+                                );
+                            } else {
+                                ui.session.working_dir =
+                                    compact_str::CompactString::new(path.to_string_lossy());
+                                ui.context.reload();
+                                apply_current_prompt_mode(ui.context, &ui.permission);
+                                #[cfg(feature = "mcp")]
+                                ensure_mcp_manager(&mut ui.mcp_manager, ui.cfg).await;
+                                run.agent = Some(
+                                    ui.agent_build_ctx()
+                                        .rebuild_agent(&ui.session.model, slash.reasoning_enabled)
+                                        .await,
+                                );
+                                if let Err(e) = render_session(
+                                    &mut renderer,
+                                    ui.session,
+                                    ui.cli,
+                                    ui.cfg,
+                                    ui.context,
+                                ) {
+                                    tracing::warn!(
+                                        "failed to re-render session after worktree switch: {e}"
+                                    );
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            let _ =
+                                renderer.write_line(&format!("worktree failed: {}", e), C_ERROR);
+                        }
+                    }
                 }
             }
         }
@@ -2143,12 +2155,23 @@ impl<'a> App<'a> {
                 }
             }
             crate::extras::git_worktree::MergeOutcome::Conflicts(files) => {
-                let _ = self.renderer.write_line(
-                    &format!("merge conflict in {} file(s):", files.len()),
-                    C_ERROR,
-                );
-                for f in &files {
-                    let _ = self.renderer.write_line(&format!("  {}", f), C_ERROR);
+                if files.is_empty() {
+                    // try_merge reports Conflicts only when unmerged entries
+                    // exist, so an empty list means the file listing failed —
+                    // say so instead of printing "0 file(s)".
+                    let _ = self.renderer.write_line(
+                        "merge conflict detected but the conflicting file list is unavailable; \
+                         run `git status` in the main repo to see them",
+                        C_ERROR,
+                    );
+                } else {
+                    let _ = self.renderer.write_line(
+                        &format!("merge conflict in {} file(s):", files.len()),
+                        C_ERROR,
+                    );
+                    for f in &files {
+                        let _ = self.renderer.write_line(&format!("  {}", f), C_ERROR);
+                    }
                 }
                 if let Some(ss) = self.ui.status_signals.as_ref() {
                     ss.send_git_conflict();
@@ -2188,13 +2211,17 @@ impl<'a> App<'a> {
                             .write_line("merge aborted, restored original state", C_AGENT);
                     }
                     'l' => {
-                        let _ = self.renderer.write_line(
-                            &format!(
-                                "conflict state left in {} for manual resolution",
-                                info.main_repo_path.display()
-                            ),
-                            C_AGENT,
+                        let mut msg = format!(
+                            "conflict state left in {} for manual resolution",
+                            info.main_repo_path.display()
                         );
+                        if state.stashed {
+                            msg.push_str(
+                                " (your pre-merge main-repo changes are stashed; \
+                                 run `git stash pop` after resolving)",
+                            );
+                        }
+                        let _ = self.renderer.write_line(&msg, C_AGENT);
                     }
                     'h' => {
                         let _ = crate::extras::git_worktree::cancel_merge(&state);

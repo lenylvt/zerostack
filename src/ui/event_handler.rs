@@ -567,11 +567,11 @@ async fn handle_agent_done(
     }
 
     #[cfg(feature = "git-worktree")]
-    if let Some((main_path, wt_path, branch, force)) = chain.wt_return_path.take() {
-        crate::extras::git_worktree::cleanup_worktree(&wt_path, &branch, &main_path, force);
-        match std::env::set_current_dir(&main_path) {
+    if let Some(ret) = chain.wt_return_path.take() {
+        let outcome_msg = super::resolve_agent_merge_outcome(&ret);
+        match std::env::set_current_dir(&ret.main_path) {
             Ok(()) => {
-                ui.session.working_dir = compact_str::CompactString::new(&main_path);
+                ui.session.working_dir = compact_str::CompactString::new(&ret.main_path);
                 ui.context.reload();
                 apply_current_prompt_mode(ui.context, &ui.permission);
                 run.agent = Some(
@@ -582,10 +582,7 @@ async fn handle_agent_done(
                 crate::ui::events::render_session(
                     renderer, ui.session, ui.cli, ui.cfg, ui.context,
                 )?;
-                renderer.write_line(
-                    &format!("merged and returned to main repo at {}", main_path),
-                    C_AGENT,
-                )?;
+                renderer.write_line(&outcome_msg, C_AGENT)?;
             }
             Err(e) => {
                 renderer.write_line(

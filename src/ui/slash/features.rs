@@ -92,10 +92,13 @@ async fn handle_worktree(parts: &[&str], ctx: &mut SlashCtx<'_>) -> anyhow::Resu
         return Ok(());
     }
     let name = parts[1].trim();
-    if name.is_empty() || name.contains(' ') || name.contains('/') {
+    if let Err(e) = crate::extras::git_worktree::validate_branch_name(name) {
         write_error(
             ctx.renderer,
-            "invalid name: use a single word without spaces or slashes",
+            format!(
+                "{}. Use a single word without spaces, slashes, or leading dashes.",
+                e
+            ),
         );
         return Ok(());
     }
