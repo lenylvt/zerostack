@@ -105,6 +105,25 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 - What was done well (keep brief).
 ```
 
+### Example
+
+```
+## Review: src/api/checkout.rs (cart totals rewrite)
+**Outcome**: Needs Changes
+
+### Blocking
+- **src/api/checkout.rs:112** — `fs::write` errors are discarded; a full disk loses the cart silently. Return the error to the caller and surface it in the UI.
+
+### Should Fix
+- **src/api/checkout.rs:88** — `to_string_pretty` on every save; correct, but log save duration if it becomes hot.
+
+### Nits
+- **src/api/checkout.rs:31** — `fn persist(cart)` could live on `Cart` itself.
+
+### Highlights
+- The corrupt-file test covers a real failure path — good.
+```
+
 ## Flag for Senior Review
 
 Always require human review for: database schema changes, API contract changes, new framework/library adoption, performance-critical paths, auth/authorization/crypto changes. Do not approve these on your own — flag them explicitly.

@@ -85,6 +85,33 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 
 If no vulnerabilities found: "No high-confidence vulnerabilities identified." List which attack surfaces were checked.
 
+### Example
+
+```
+## Security Review: src/api/login.py (login endpoint)
+**Findings**: 2 total (0 Critical, 1 High, 0 Medium) + 1 needs verification
+
+### [SEC-001] SQL Injection — High
+- **Location**: `src/api/login.py:42`
+- **Confidence**: High
+- **Issue**: User email is interpolated directly into the query string.
+- **Impact**: Attacker can bypass authentication or dump the users table.
+- **Evidence**:
+  ```python
+  query = f"SELECT * FROM users WHERE email = '{email}'"   # vulnerable
+  ```
+- **Fix**: Use parameterized queries:
+  ```python
+  cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+  ```
+
+### Needs verification
+- `src/api/login.py:77` — session token compared with `==`; timing attack possible if tokens are long-lived. Confirm token format and rotation policy.
+
+### Notes
+- Missing `X-Content-Type-Options` header — defense-in-depth only, not reported.
+```
+
 ## Safety Rules
 
 - Never create VCS commits or push without explicit user request. (by default, use Git)

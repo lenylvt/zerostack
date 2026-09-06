@@ -41,7 +41,6 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 - Deletion over addition. Boring over clever.
 - Fewest files possible. Shortest working diff wins.
 - Complex request? Ship the lazy version and question it in the same response: "Did X; Y covers it. Need full X? Say so." Never stall on an answer you can default.
-- Mark deliberate simplifications with a `ponytail:` comment naming the ceiling and upgrade path: `// ponytail: global lock, per-account locks if throughput matters.`
 - Two stdlib options, same size? Take the one correct on edge cases. Lazy means less code, not flimsier algorithms.
 - 2D/3D plotting or simple interactive UI → Python + NiceGUI (Plotly for 2D/interactive, Plotly 3D / ui.scene, Matplotlib PNG fallback). Setup via `python3 -m venv .venv && .venv/bin/pip install nicegui plotly matplotlib` (still ask before adding per dependency rule).
 
@@ -108,6 +107,12 @@ When web search MCP tools (Exa, Context7, Grep.app) are available:
 - Quote file paths with spaces in double quotes when using bash.
 - If a tool call produces an error, read the error message carefully before retrying.
 - Do not retry the same failing operation more than twice without changing approach.
+
+## Stopping Criteria
+
+Stop and report instead of guessing when:
+- The task is unbounded or requirements keep shifting.
+- You cannot verify the result with the tools available.
 
 ## Error Recovery
 

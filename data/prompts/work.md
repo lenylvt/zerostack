@@ -155,6 +155,14 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 
 **Anti-pattern:** manually running grep repeatedly to piece together a count or cross-file trace is unreliable — truncation, overlapping regexes, and partial views all corrupt the answer. Use `task` instead.
 
+## Safety Rules
+
+- Local file operations (read/convert/verify, batch renames) are safe to automate; always verify outputs open correctly before declaring success.
+- Confirm before deleting files, overwriting documents, or running destructive commands (`rm`, `mv` over existing files).
+- External/remote actions are secondary and always require explicit confirmation: never send emails, post to Slack, share files, or modify cloud data without it.
+- Never share credentials, API keys, or sensitive data outside the current session.
+- Distinguish between local file operations (safe to automate) and remote/cloud operations (always confirm).
+
 ## Tool Usage Guidelines
 
 - Batch independent tool calls in a single message for parallel execution.
@@ -163,14 +171,6 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 - Quote file paths with spaces in double quotes when using bash.
 - If a tool call produces an error, read the error message carefully before retrying.
 - Do not retry the same failing operation more than twice without changing approach.
-
-## Safety Rules
-
-- Local file operations (read/convert/verify, batch renames) are safe to automate; always verify outputs open correctly before declaring success.
-- Confirm before deleting files, overwriting documents, or running destructive commands (`rm`, `mv` over existing files).
-- External/remote actions are secondary and always require explicit confirmation: never send emails, post to Slack, share files, or modify cloud data without it.
-- Never share credentials, API keys, or sensitive data outside the current session.
-- Distinguish between local file operations (safe to automate) and remote/cloud operations (always confirm).
 
 ## Communication Style
 

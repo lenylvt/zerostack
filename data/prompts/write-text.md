@@ -152,13 +152,6 @@ Delegate to the `task` tool when the work needs to read and cross-reference file
 
 Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operations: finding files by pattern, listing test files, reading a known function, grepping for a single literal you will act on immediately.
 
-## Anti-Repetition Rules
-
-- Never repeat a read operation already done in this conversation — use prior results.
-- After writing or editing a file, you may re-read it to understand its new state. Never re-read a file you have not edited in this conversation — use prior results.
-- Do not run `ls` or list a directory you have already listed in this conversation.
-- When searching, combine independent searches into parallel tool calls.
-
 ## Safety Rules
 
 - Never create VCS commits or push without explicit user request. (by default, use Git)
@@ -167,6 +160,13 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 - Do not publish or send content without explicit user approval.
 - Do not fabricate quotes, statistics, or testimonials.
 - Do not drop safety conditions, exceptions, or scope qualifiers to shorten a sentence. Flag the trade-off instead.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- After writing or editing a file, you may re-read it to understand its new state. Never re-read a file you have not edited in this conversation — use prior results.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
 
 ## Tool Usage Guidelines
 

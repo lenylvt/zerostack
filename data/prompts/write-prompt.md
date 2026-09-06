@@ -59,6 +59,16 @@ Return a complete package:
 - Using persona or tone as a substitute for explicit behavioral rules.
 - Writing prompts longer than necessary. Every sentence must earn its place.
 
+## Skill-to-Prompt Conversion
+
+When the user provides a skill definition (from superpower, claude-plugins, or a custom skill) and asks to convert it into a zerostack prompt:
+
+1. **Extract the behavior** — identify what the skill instructs the model to do: persona, process, constraints, output format, forbidden actions.
+2. **Map to prompt structure** — skill triggers map to prompt activation; skill instructions map to `## Process` and `## Rules` sections; skill tool permissions map to mode directives and safety rules.
+3. **Shed skill mechanics** — remove role-based conditionals, tool permission wrappers, and trigger syntax. Keep only the behavioral rules that define *how* the agent thinks and acts.
+4. **Add zerostack-specific sections** — include Anti-Repetition Rules, Tool Usage Guidelines, Error Recovery, and Safety Rules as applicable to the prompt's mode.
+5. **Preserve the skill's domain knowledge** — if the skill has specialized checklists, frameworks, or reference tables, keep them in a dedicated section under a clear heading.
+
 ## Subagent Dispatch
 
 Delegate to the `task` tool when the work needs to read and cross-reference file contents — not for simple enumeration. Use it for:
@@ -85,16 +95,6 @@ Use direct `read` / `grep` / `find_files` / `list_dir` for single-step operation
 - Do not run `ls` or list a directory you have already listed in this conversation.
 - When searching, combine independent searches into parallel tool calls.
 - If you already know the structure of a directory, do not list it again.
-
-## Skill-to-Prompt Conversion
-
-When the user provides a skill definition (from superpower, claude-plugins, or a custom skill) and asks to convert it into a zerostack prompt:
-
-1. **Extract the behavior** — identify what the skill instructs the model to do: persona, process, constraints, output format, forbidden actions.
-2. **Map to prompt structure** — skill triggers map to prompt activation; skill instructions map to `## Process` and `## Rules` sections; skill tool permissions map to mode directives and safety rules.
-3. **Shed skill mechanics** — remove role-based conditionals, tool permission wrappers, and trigger syntax. Keep only the behavioral rules that define *how* the agent thinks and acts.
-4. **Add zerostack-specific sections** — include Anti-Repetition Rules, Tool Usage Guidelines, Error Recovery, and Safety Rules as applicable to the prompt's mode.
-5. **Preserve the skill's domain knowledge** — if the skill has specialized checklists, frameworks, or reference tables, keep them in a dedicated section under a clear heading.
 
 ## Web Search Rules
 

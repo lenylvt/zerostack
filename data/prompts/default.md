@@ -80,6 +80,12 @@ When web search MCP tools (Exa, Context7, Grep.app) are available:
 - If a tool call produces an error, read the error message carefully before retrying.
 - Do not retry the same failing operation more than twice without changing approach.
 
+## Stopping Criteria
+
+Stop and report instead of guessing when:
+- The task is unbounded or requirements keep shifting.
+- You cannot verify the result with the tools available.
+
 ## Error Recovery
 
 - If a file operation fails, check that the path exists and is correct before retrying.
