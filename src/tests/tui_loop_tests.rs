@@ -460,6 +460,167 @@ async fn ctrl_r_toggles_reasoning_visibility() {
     app.teardown().await;
 }
 
+/// Build a headless app with two quick models on the same provider, so
+/// `Alt+M` switching stays local (no client rebuild, no network).
+async fn headless_app_with_quick_models() -> App<'static> {
+    isolate_data_dirs();
+    let mut quick = HashMap::new();
+    quick.insert(
+        "fast".to_string(),
+        crate::config::QuickModelConfig {
+            provider: compact_str::CompactString::new("anthropic"),
+            model: compact_str::CompactString::new("claude-fast-test"),
+            input_token_cost: 1.0,
+            output_token_cost: 2.0,
+            reserve_tokens: None,
+            temperature: None,
+            extra_body: None,
+            context_window: None,
+        },
+    );
+    quick.insert(
+        "pro".to_string(),
+        crate::config::QuickModelConfig {
+            provider: compact_str::CompactString::new("anthropic"),
+            model: compact_str::CompactString::new("claude-pro-test"),
+            input_token_cost: 3.0,
+            output_token_cost: 4.0,
+            reserve_tokens: None,
+            temperature: None,
+            extra_body: None,
+            context_window: None,
+        },
+    );
+    let cfg: &'static Config = Box::leak(Box::new(Config {
+        quick_models: Some(quick),
+        ..Default::default()
+    }));
+    let cli: &'static Cli = Box::leak(Box::new(Cli {
+        api_key: Some("test-key".to_string()),
+        no_session: true,
+        no_color: true,
+        ..Default::default()
+    }));
+    let session: &'static mut Session = Box::leak(Box::new(Session::new(
+        "anthropic",
+        "claude-sonnet-4-5",
+        200_000,
+        "tui-switcher-test",
+    )));
+    let context: &'static mut ContextFiles = Box::leak(Box::new(crate::context::load(true)));
+    let client =
+        crate::provider::create_client("anthropic", Some("test-key"), &HashMap::new(), None)
+            .expect("create test client");
+    let ui = UiContext::new(
+        cli,
+        cfg,
+        session,
+        context,
+        client,
+        None,
+        None,
+        Sandbox::new(false, "bwrap"),
+        None,
+    );
+    let model = fake_model::text_turns(Vec::<Vec<&str>>::new());
+    let agent = AnyAgent::Mock(rig::agent::AgentBuilder::new(model).build());
+    App::new_headless(
+        ui,
+        Some(agent),
+        None,
+        None,
+        Box::new(FakeBackend::new(80, 24)),
+    )
+    .await
+    .expect("build headless app")
+}
+
+fn alt_key(c: char) -> UserEvent {
+    UserEvent::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::ALT))
+}
+
+fn esc_key() -> UserEvent {
+    UserEvent::Key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE))
+}
+
+#[tokio::test]
+async fn alt_m_switcher_applies_quick_model_immediately() {
+    let _guard = acquire();
+    let mut app = headless_app_with_quick_models().await;
+
+    app.inject(alt_key('m')).await;
+    step_until(&mut app, |a| a.switcher_kind() == Some("model")).await;
+
+    // Filter to "pro" and confirm: single Enter applies via `/models pro`.
+    app.inject(char_key('p')).await;
+    app.inject(char_key('r')).await;
+    app.inject(char_key('o')).await;
+    pump(&mut app).await;
+    assert_eq!(app.switcher_kind(), Some("model"));
+    app.inject(enter_key()).await;
+    step_until(&mut app, |a| a.switcher_kind().is_none()).await;
+    step_until(&mut app, |a| {
+        a.session().model.as_str() == "claude-pro-test"
+    })
+    .await;
+
+    assert_eq!(app.session().provider.as_str(), "anthropic");
+    assert_eq!(app.session().input_token_cost, 3.0);
+    assert_eq!(app.session().output_token_cost, 4.0);
+    let feed = app.feed_text();
+    assert!(
+        feed.contains("switched to model:"),
+        "feed should confirm the switch: {feed}"
+    );
+
+    app.teardown().await;
+}
+
+#[tokio::test]
+async fn alt_m_switcher_esc_cancels_without_switching() {
+    let _guard = acquire();
+    let mut app = headless_app_with_quick_models().await;
+    let before = app.session().model.to_string();
+
+    app.inject(alt_key('m')).await;
+    step_until(&mut app, |a| a.switcher_kind() == Some("model")).await;
+    app.inject(esc_key()).await;
+    step_until(&mut app, |a| a.switcher_kind().is_none()).await;
+
+    assert_eq!(app.session().model.as_str(), before);
+
+    app.teardown().await;
+}
+
+#[tokio::test]
+async fn alt_p_switcher_applies_prompt_immediately() {
+    let _guard = acquire();
+    let (mut app, _model) = headless_app(vec![]).await;
+    assert!(!app.current_prompt_name().is_some());
+
+    app.inject(alt_key('p')).await;
+    step_until(&mut app, |a| a.switcher_kind() == Some("prompt")).await;
+
+    for c in "ask".chars() {
+        app.inject(char_key(c)).await;
+    }
+    pump(&mut app).await;
+    app.inject(enter_key()).await;
+    step_until(&mut app, |a| a.switcher_kind().is_none()).await;
+    step_until(&mut app, |a| {
+        a.current_prompt_name().as_deref() == Some("ask")
+    })
+    .await;
+
+    let feed = app.feed_text();
+    assert!(
+        feed.contains("active prompt: ask"),
+        "feed should confirm the prompt switch: {feed}"
+    );
+
+    app.teardown().await;
+}
+
 #[tokio::test]
 async fn scroll_and_resize_events() {
     let _guard = acquire();

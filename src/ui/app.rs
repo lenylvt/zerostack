@@ -19,6 +19,7 @@ use crate::ui::events::{render_session, sanitize_output};
 use crate::ui::input::InputEditor;
 use crate::ui::permission_handler::handle_permission_request;
 use crate::ui::pickers::rewind::RewindOutcome;
+use crate::ui::pickers::switcher::SwitcherResult;
 use crate::ui::renderer::{self as renderer_mod, ChainPrompt, Renderer, copy_to_clipboard};
 use crate::ui::slash::{apply_prompt_model, handle_compress, handle_slash};
 #[cfg(feature = "git-worktree")]
@@ -598,6 +599,16 @@ impl<'a> App<'a> {
         self.ui.session
     }
 
+    #[cfg(test)]
+    pub(crate) fn switcher_kind(&self) -> Option<&'static str> {
+        self.input.switcher_kind()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn current_prompt_name(&self) -> Option<String> {
+        self.ui.context.current_prompt_name.clone()
+    }
+
     pub(crate) async fn teardown(self) {
         self.running.store(false, Ordering::Relaxed);
         if let Some(h) = self.event_handle {
@@ -822,6 +833,16 @@ impl<'a> App<'a> {
             _ => {}
         }
 
+        let alt = key.modifiers.contains(KeyModifiers::ALT);
+        if alt && matches!(key.code, KeyCode::Char('m') | KeyCode::Char('M')) {
+            self.open_model_switcher()?;
+            return Ok(());
+        }
+        if alt && matches!(key.code, KeyCode::Char('p') | KeyCode::Char('P')) {
+            self.open_prompt_switcher()?;
+            return Ok(());
+        }
+
         if self.input.picker.as_ref().is_some_and(|p| p.active())
             && self.input.handle_picker_key(key)
         {
@@ -853,6 +874,17 @@ impl<'a> App<'a> {
                     )?;
                     self.renderer
                         .write_line("rewound; /redo to restore", Color::Green)?;
+                }
+            }
+            if let Some(switcher) = self.input.take_switcher_outcome() {
+                match switcher {
+                    SwitcherResult::Model(name) => {
+                        self.run_slash_command(&format!("/models {name}")).await?;
+                    }
+                    SwitcherResult::Prompt(name) => {
+                        self.run_slash_command(&format!("/prompt {name}")).await?;
+                    }
+                    SwitcherResult::Cancelled => {}
                 }
             }
             return Ok(());
@@ -2049,6 +2081,98 @@ impl<'a> App<'a> {
             self.renderer
                 .write_line(&format!("warning: failed to save session: {}", e), C_ERROR)?;
         }
+        Ok(())
+    }
+
+    /// Open the Quick-Model switcher (`Alt+M`). Reuses the `/models` slash
+    /// path on confirm, so pricing, provider switching, and context-window
+    /// updates stay identical.
+    fn open_model_switcher(&mut self) -> anyhow::Result<()> {
+        if self.run.is_running {
+            self.renderer.write_line(
+                "agent is running — wait for it to finish or press Ctrl-C before switching models",
+                C_ERROR,
+            )?;
+            return Ok(());
+        }
+        let qm = config::quick_models_map(self.ui.cfg);
+        let mut quick: Vec<String> = qm.keys().cloned().collect();
+        quick.sort();
+        let provider = self.ui.session.provider.to_string();
+        let live = crate::ui::slash::cached_model_ids(&provider);
+        // Keep the input editor's copies fresh for the `/models` insertion
+        // picker as well.
+        self.input.set_quick_model_names(quick.clone());
+        self.input.set_live_model_names(live.clone());
+
+        let mut details = std::collections::HashMap::new();
+        for name in &quick {
+            if let Some(q) = qm.get(name) {
+                details.insert(
+                    name.clone(),
+                    format!(
+                        "({} / {})  ${:.4}/M in  ${:.4}/M out",
+                        q.provider, q.model, q.input_token_cost, q.output_token_cost
+                    ),
+                );
+            }
+        }
+        let current_quick = quick.iter().find_map(|name| {
+            qm.get(name).and_then(|q| {
+                if q.provider.as_str() == self.ui.session.provider.as_str()
+                    && q.model.as_str() == self.ui.session.model.as_str()
+                {
+                    Some(name.clone())
+                } else {
+                    None
+                }
+            })
+        });
+        self.input.start_model_switcher(
+            quick,
+            live,
+            details,
+            current_quick,
+            self.ui.session.model.to_string(),
+        );
+        Ok(())
+    }
+
+    /// Open the Prompt switcher (`Alt+P`). Reuses the `/prompt` slash path
+    /// on confirm, so `%%mode=` directives and `[prompt_to_model]` linked
+    /// model switches stay identical.
+    fn open_prompt_switcher(&mut self) -> anyhow::Result<()> {
+        if self.run.is_running {
+            self.renderer.write_line(
+                "agent is running — wait for it to finish or press Ctrl-C before switching prompts",
+                C_ERROR,
+            )?;
+            return Ok(());
+        }
+        let mut items: Vec<String> = self.ui.context.prompts.keys().cloned().collect();
+        items.sort();
+        self.input.set_prompt_names(items.clone());
+
+        let mut details = std::collections::HashMap::new();
+        for name in &items {
+            if let Some(content) = self.ui.context.prompts.get(name) {
+                let source = match crate::context::prompts::source_of(name) {
+                    crate::session::PromptSource::BuiltIn => "BuiltIn",
+                    crate::session::PromptSource::UserFile => "UserFile",
+                };
+                let (mode, _) = crate::permission::parse_prompt_mode(content);
+                let label = match mode {
+                    Some(m) => format!("{} · mode: {}", source, m),
+                    None => source.to_string(),
+                };
+                details.insert(name.clone(), label);
+            }
+        }
+        self.input.start_prompt_switcher(
+            items,
+            details,
+            self.ui.context.current_prompt_name.clone(),
+        );
         Ok(())
     }
 
