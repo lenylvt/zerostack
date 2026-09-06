@@ -1157,6 +1157,7 @@ impl<'a> App<'a> {
             } else {
                 None
             };
+            let extra = self.ui.context.extra_prompts_dirs.clone();
             self.ui.session.prompt =
                 self.ui
                     .context
@@ -1164,7 +1165,7 @@ impl<'a> App<'a> {
                     .as_deref()
                     .map(|name| PromptRef {
                         name: name.into(),
-                        source: crate::context::prompts::source_of(name),
+                        source: crate::context::prompts::source_of_with_extra(name, &extra),
                     });
             if let Some(perm) = &self.ui.permission {
                 let mut guard = perm.lock().unwrap_or_else(|e| e.into_inner());
@@ -1237,6 +1238,7 @@ impl<'a> App<'a> {
             } else {
                 None
             };
+            let extra = self.ui.context.extra_prompts_dirs.clone();
             self.ui.session.prompt =
                 self.ui
                     .context
@@ -1244,7 +1246,7 @@ impl<'a> App<'a> {
                     .as_deref()
                     .map(|name| PromptRef {
                         name: name.into(),
-                        source: crate::context::prompts::source_of(name),
+                        source: crate::context::prompts::source_of_with_extra(name, &extra),
                     });
             if let Some(perm) = &self.ui.permission {
                 let mut guard = perm.lock().unwrap_or_else(|e| e.into_inner());
@@ -2149,9 +2151,10 @@ impl<'a> App<'a> {
         self.input.set_prompt_names(items.clone());
 
         let mut details = std::collections::HashMap::new();
+        let extra = self.ui.context.extra_prompts_dirs.clone();
         for name in &items {
             if let Some(content) = self.ui.context.prompts.get(name) {
-                let source = match crate::context::prompts::source_of(name) {
+                let source = match crate::context::prompts::source_of_with_extra(name, &extra) {
                     crate::session::PromptSource::BuiltIn => "BuiltIn",
                     crate::session::PromptSource::UserFile => "UserFile",
                 };

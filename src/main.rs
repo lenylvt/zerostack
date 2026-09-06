@@ -49,6 +49,13 @@ async fn run() -> anyhow::Result<()> {
 
     let (mut cfg, is_first_startup) = config::load();
 
+    // CLI MCP flags override config; parse errors exit before anything runs.
+    #[cfg(feature = "mcp")]
+    if let Err(e) = cli.merge_cli_mcp(&mut cfg) {
+        eprintln!("error: {e}");
+        std::process::exit(1);
+    }
+
     if cli.print_config {
         print::print_config(&cli, &cfg);
         return Ok(());

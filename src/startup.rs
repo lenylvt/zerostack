@@ -197,7 +197,21 @@ impl Startup {
         is_interactive: bool,
     ) -> anyhow::Result<Self> {
         // Load context first so prompts/themes are available early.
-        let context = context::load(cli.resolve_no_context_files(&cfg));
+        // Extra CLI prompts dirs layer over `.zerostack/prompts/` at the
+        // highest precedence.
+        let extra_prompts_dirs = cli.resolve_prompts_dirs();
+        for dir in &extra_prompts_dirs {
+            if !dir.exists() {
+                eprintln!(
+                    "warning: --prompts-dir '{}' does not exist (skipped)",
+                    dir.display()
+                );
+            }
+        }
+        let context = context::load_with_prompts_dirs(
+            cli.resolve_no_context_files(&cfg),
+            &extra_prompts_dirs,
+        );
 
         let mut provider = cli.resolve_provider(&cfg);
         let mut model = cli.resolve_model(&cfg);
@@ -619,7 +633,10 @@ impl Startup {
             }
 
             if regenerated {
-                self.context = context::load(self.cli.resolve_no_context_files(&self.cfg));
+                self.context = context::load_with_prompts_dirs(
+                    self.cli.resolve_no_context_files(&self.cfg),
+                    &self.cli.resolve_prompts_dirs(),
+                );
             }
         }
 
@@ -725,7 +742,10 @@ impl Startup {
                 self.context.current_prompt_name = Some(default_prompt.to_string());
                 self.session.prompt = Some(PromptRef {
                     name: CompactString::new(default_prompt),
-                    source: context::prompts::source_of(default_prompt),
+                    source: context::prompts::source_of_with_extra(
+                        default_prompt,
+                        &self.cli.resolve_prompts_dirs(),
+                    ),
                 });
 
                 apply_startup_prompt_model(
@@ -765,7 +785,10 @@ impl Startup {
                 self.context.current_prompt_name = Some(name.clone());
                 self.session.prompt = Some(PromptRef {
                     name: CompactString::new(name.as_str()),
-                    source: context::prompts::source_of(name),
+                    source: context::prompts::source_of_with_extra(
+                        name,
+                        &self.cli.resolve_prompts_dirs(),
+                    ),
                 });
 
                 apply_startup_prompt_model(

@@ -44,7 +44,14 @@ overriding earlier ones for same-named files:
 1. Embedded at compile time
 2. `~/.local/share/zerostack/prompts/` (global, user-level)
 3. `prompts/` (project-local, relative to CWD)
-4. `.zerostack/prompts/` (project-level config, highest priority)
+4. `.zerostack/prompts/` (project-level config)
+5. `--prompts-dir <path>` / `ZS_PROMPTS_DIR` (CLI, highest priority; repeatable, last wins)
+
+Extra CLI prompts dirs load `.md` files like the other tiers: same-named
+prompts override everything below, new names are added. Missing dirs are
+skipped with a warning. `ZS_PROMPTS_DIR` (`:`-separated, e.g.
+`ZS_PROMPTS_DIR=./shared:./team`) appends after the `--prompts-dir` flags,
+so the env's last entry wins overall.
 
 **Themes** (priority low to high):
 1. Embedded at compile time
@@ -861,7 +868,21 @@ permission-regex:
 When compiled with MCP support, `mcp_servers` accepts command-based and URL-based
 servers. Servers can also be added per project via `.zerostack/config.toml`
 (see *Project-local override* above); project servers merge with — and can
-override — global ones by name.
+override — global ones by name. Ephemeral servers can be added on the command
+line without touching any config file:
+
+```sh
+# stdio server: NAME=command args... (repeatable; shell quoting honored)
+zerostack --custom-mcp 'local-fs=npx -y @modelcontextprotocol/server-filesystem .'
+# HTTP server: NAME=https://... (repeatable)
+zerostack --custom-mcp-http 'exa=https://mcp.exa.ai/mcp'
+```
+
+CLI servers override same-named config entries; a repeated name keeps the
+last flag. Names must be non-empty with no whitespace, `=`, or `__` (they
+become `mcp__<server>__<tool>` allowlist keys). Invalid entries abort startup
+with an error. Only command/URL servers are expressible on the CLI — `env`,
+headers, OAuth, and timeouts require the config file.
 
 ```json
 {

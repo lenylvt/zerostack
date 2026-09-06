@@ -73,7 +73,8 @@ async fn headless_app(turns: Vec<Vec<&str>>) -> (App<'static>, FakeModel) {
         200_000,
         "tui-loop-test",
     )));
-    let context: &'static mut ContextFiles = Box::leak(Box::new(crate::context::load(true)));
+    let context: &'static mut ContextFiles =
+        Box::leak(Box::new(crate::context::load_with_prompts_dirs(true, &[])));
     let client =
         crate::provider::create_client("anthropic", Some("test-key"), &HashMap::new(), None)
             .expect("create test client");
@@ -507,7 +508,8 @@ async fn headless_app_with_quick_models() -> App<'static> {
         200_000,
         "tui-switcher-test",
     )));
-    let context: &'static mut ContextFiles = Box::leak(Box::new(crate::context::load(true)));
+    let context: &'static mut ContextFiles =
+        Box::leak(Box::new(crate::context::load_with_prompts_dirs(true, &[])));
     let client =
         crate::provider::create_client("anthropic", Some("test-key"), &HashMap::new(), None)
             .expect("create test client");

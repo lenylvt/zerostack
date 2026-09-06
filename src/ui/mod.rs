@@ -76,9 +76,10 @@ pub(crate) fn apply_prompt_mode(
         content.clone()
     });
     context.current_prompt_name = Some(name.to_string());
+    let extra = context.extra_prompts_dirs.clone();
     session.prompt = Some(PromptRef {
         name: name.into(),
-        source: crate::context::prompts::source_of(name),
+        source: crate::context::prompts::source_of_with_extra(name, &extra),
     });
     apply_mode_directive(mode_directive, permission)
 }

@@ -104,7 +104,9 @@ pub struct PermissionAllowEntry {
 /// differed from the compiled-in one, or had no compiled-in counterpart at
 /// all; a file merely existing on disk is not enough, since the global
 /// prompts dir is seeded with every default on first run. See
-/// [`prompts::source_of`](crate::context::prompts::source_of).
+/// [`prompts::source_of`](crate::context::prompts::source_of) (or
+/// [`source_of_with_extra`](crate::context::prompts::source_of_with_extra)
+/// when CLI `--prompts-dir` dirs are in play).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PromptSource {

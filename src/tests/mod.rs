@@ -19,6 +19,8 @@ mod chain_tests;
 #[cfg(test)]
 mod checker_tests;
 #[cfg(test)]
+mod cli_custom_flags_tests;
+#[cfg(test)]
 mod config_tests;
 #[cfg(test)]
 mod context_tests;
