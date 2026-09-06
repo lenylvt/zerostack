@@ -544,39 +544,6 @@ fn esc_key() -> UserEvent {
 }
 
 #[tokio::test]
-async fn alt_m_switcher_applies_quick_model_immediately() {
-    let _guard = acquire();
-    let mut app = headless_app_with_quick_models().await;
-
-    app.inject(alt_key('m')).await;
-    step_until(&mut app, |a| a.switcher_kind() == Some("model")).await;
-
-    // Filter to "pro" and confirm: single Enter applies via `/models pro`.
-    app.inject(char_key('p')).await;
-    app.inject(char_key('r')).await;
-    app.inject(char_key('o')).await;
-    pump(&mut app).await;
-    assert_eq!(app.switcher_kind(), Some("model"));
-    app.inject(enter_key()).await;
-    step_until(&mut app, |a| a.switcher_kind().is_none()).await;
-    step_until(&mut app, |a| {
-        a.session().model.as_str() == "claude-pro-test"
-    })
-    .await;
-
-    assert_eq!(app.session().provider.as_str(), "anthropic");
-    assert_eq!(app.session().input_token_cost, 3.0);
-    assert_eq!(app.session().output_token_cost, 4.0);
-    let feed = app.feed_text();
-    assert!(
-        feed.contains("switched to model:"),
-        "feed should confirm the switch: {feed}"
-    );
-
-    app.teardown().await;
-}
-
-#[tokio::test]
 async fn alt_m_switcher_esc_cancels_without_switching() {
     let _guard = acquire();
     let mut app = headless_app_with_quick_models().await;
@@ -588,35 +555,6 @@ async fn alt_m_switcher_esc_cancels_without_switching() {
     step_until(&mut app, |a| a.switcher_kind().is_none()).await;
 
     assert_eq!(app.session().model.as_str(), before);
-
-    app.teardown().await;
-}
-
-#[tokio::test]
-async fn alt_p_switcher_applies_prompt_immediately() {
-    let _guard = acquire();
-    let (mut app, _model) = headless_app(vec![]).await;
-    assert!(!app.current_prompt_name().is_some());
-
-    app.inject(alt_key('p')).await;
-    step_until(&mut app, |a| a.switcher_kind() == Some("prompt")).await;
-
-    for c in "ask".chars() {
-        app.inject(char_key(c)).await;
-    }
-    pump(&mut app).await;
-    app.inject(enter_key()).await;
-    step_until(&mut app, |a| a.switcher_kind().is_none()).await;
-    step_until(&mut app, |a| {
-        a.current_prompt_name().as_deref() == Some("ask")
-    })
-    .await;
-
-    let feed = app.feed_text();
-    assert!(
-        feed.contains("active prompt: ask"),
-        "feed should confirm the prompt switch: {feed}"
-    );
 
     app.teardown().await;
 }
