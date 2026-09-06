@@ -224,7 +224,7 @@ Built-in prompts:
 | **`refactor`**        | Refactoring mode — restructures code for design and maintainability while preserving behavior |
 | **`autoconfig`**      | Configuration mode — reads docs and edits your config/prompts, writes no code |
 | **`orchestrator`**    | Orchestration mode — combines direct tool use with parallel `zerostack` subprocess invocations for heavier work |
-| **`write-text`**      | Prose-writing mode — drafts and reviews non-code writing (docs, posts, emails) |
+| **`write-text`**      | Technical-writing mode — drafts and reviews unambiguous text in Simplified Technical English |
 
 You can also create custom prompts by placing markdown files in
 `$XDG_CONFIG_HOME/zerostack/prompts/` and referencing them by name.
