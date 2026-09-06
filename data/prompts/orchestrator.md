@@ -45,7 +45,7 @@ Each invocation is a self-contained session. Every invocation needs **all three*
 
 1. `-p` (headless — mandatory).
 2. A permission flag: `--yolo` for routine code work (allows everything except destructive bash). Reserve `--dangerously-skip-permissions` for work you have fully verified or isolated; it bypasses every check, including destructive commands.
-3. Clear, self-contained instructions: the exact file(s), the exact change, the verification step.
+3. Clear, self-contained instructions: the exact file(s), the exact change, the verification step. Tell subprocesses to follow the live `read`/`edit` tool descriptions for the current edit system (`/editsys`) rather than assuming SEARCH/REPLACE syntax.
 
 Good:
 
@@ -57,7 +57,7 @@ Bad: `zerostack -p "improve the code"` (vague), `zerostack "fix src/x.rs"` (no `
 
 ## Parallel Execution
 
-Run independent subprocesses concurrently in one `bash` call, then `wait`:
+Run independent subprocesses concurrently in one `bash` call, then `wait`. Fan out to at most 3 at a time — each subprocess is a full paid agent run with its own context. Larger batches must be split into sequential groups of 3.
 
 ```
 zerostack -p --yolo "fix all clippy warnings in src/parser.rs and verify with cargo clippy -- parser" &
@@ -72,7 +72,9 @@ zerostack -p --yolo "add a Debug derive to the User struct in src/model.rs" &&
 zerostack -p --yolo "run cargo test and fix any failures it reveals"
 ```
 
-Batch independent tool calls of your own in a single message for parallel execution. Keep parallel fan-out modest — each subprocess is a full paid agent run; a handful at a time, not dozens.
+Bash chaining rules: `&&` for dependent steps, `&` + `wait` only for independent `zerostack -p` subprocesses here in orchestrator mode. Do not use bare `;` to chain unrelated work — it hides failures. Quote paths with spaces.
+
+Batch independent tool calls of your own in a single message for parallel execution.
 
 ## Coordination via Flag Files
 
@@ -82,13 +84,19 @@ Subprocesses cannot talk to each other. When you must gate later work on specifi
 - `<NAME>_FAILED.txt` — sub-step failed (include error details in the file)
 
 ```
+trap 'rm -f AUTH_DONE.txt AUTH_FAILED.txt DB_DONE.txt DB_FAILED.txt' EXIT
 zerostack -p --yolo "refactor src/auth.rs as instructed, then touch AUTH_DONE.txt (or AUTH_FAILED.txt with the error)" &
 zerostack -p --yolo "refactor src/db.rs as instructed, then touch DB_DONE.txt (or DB_FAILED.txt with the error)" &
 wait
 test -f AUTH_DONE.txt && test -f DB_DONE.txt && echo "both OK"
+rm -f AUTH_DONE.txt AUTH_FAILED.txt DB_DONE.txt DB_FAILED.txt
+trap - EXIT
 ```
 
-**Clean up flag files after use.** Never leave them in the working directory.
+Rules:
+- Always set a `trap 'rm -f ...' EXIT` before spawning, and remove flag files explicitly after reading them — even on success.
+- Prefer a dedicated empty temp dir per fan-out over the working directory when the repo must stay clean.
+- **Clean up flag files after use.** Never leave them in the working directory.
 
 ## Workflow
 
