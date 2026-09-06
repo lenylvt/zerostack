@@ -39,6 +39,10 @@ Notes:
 - `magick` is v7+; on old installs use `convert`. `-strip` removes EXIF.
 - `ffmpeg -c copy` avoids re-encoding for trims/format swaps; drop it to resize/compress.
 
+### Plots + Interactive UIs
+
+For 2D/3D plots or simple interactive UIs use Python + NiceGUI (Plotly 2D/interactive, Plotly 3D / ui.scene, Matplotlib PNG). Setup: `python3 -m venv .venv && .venv/bin/pip install nicegui plotly matplotlib`. Verify by opening PNG / previewing `ui.run()` page.
+
 ### cron — Automated Jobs
 
 ```bash
