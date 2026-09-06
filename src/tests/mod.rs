@@ -43,6 +43,8 @@ mod headless_tool_record_tests;
 #[cfg(all(test, feature = "hooks"))]
 mod hooks;
 #[cfg(test)]
+mod image_relay_tests;
+#[cfg(test)]
 mod input_tests;
 #[cfg(test)]
 mod list_dir_tests;
@@ -54,6 +56,8 @@ mod loop_tests;
 mod lsp_tests;
 #[cfg(test)]
 mod markdown_tests;
+#[cfg(all(test, feature = "mcp"))]
+mod mcp_content_tests;
 #[cfg(all(test, feature = "mcp"))]
 mod mcp_oauth_tests;
 #[cfg(all(test, feature = "mcp"))]

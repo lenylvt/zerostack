@@ -217,7 +217,7 @@ pub async fn build_agent_inner<M: CompletionModel + 'static>(
     // `None` for providers that need no extra routing.
     additional_params: Option<serde_json::Value>,
     #[cfg(feature = "mcp")] mcp_manager: Option<&McpClientManager>,
-) -> Agent<M> {
+) -> Agent<crate::agent::image_relay::ImageRelayModel<M>> {
     #[cfg(feature = "lsp")]
     let lsp_manager = if cli.resolve_no_tools(cfg) {
         None
@@ -245,7 +245,8 @@ pub async fn build_agent_inner<M: CompletionModel + 'static>(
         preamble.push_str(crate::agent::prompt::RTK_PROMPT);
     }
 
-    let mut builder = AgentBuilder::new(model).preamble(&preamble);
+    let mut builder = AgentBuilder::new(crate::agent::image_relay::ImageRelayModel::new(model))
+        .preamble(&preamble);
 
     if let Some(params) = additional_params {
         builder = builder.additional_params(params);
@@ -436,7 +437,7 @@ pub fn build_btw_agent_inner<M: CompletionModel + 'static>(
     temperature: Option<f64>,
     // See `build_agent_inner`: OpenRouter `provider.order` pin for `anthropic/*`.
     additional_params: Option<serde_json::Value>,
-) -> Agent<M> {
+) -> Agent<crate::agent::image_relay::ImageRelayModel<M>> {
     let cwd = std::env::current_dir()
         .ok()
         .map(|p| p.display().to_string())
@@ -485,7 +486,7 @@ pub fn build_btw_agent_inner<M: CompletionModel + 'static>(
 
     // Honor --no-tools: fall back to a pure-context, single-turn answer.
     if cli.resolve_no_tools(cfg) {
-        let mut builder = AgentBuilder::new(model)
+        let mut builder = AgentBuilder::new(crate::agent::image_relay::ImageRelayModel::new(model))
             .preamble(&preamble)
             .default_max_turns(1)
             .max_tokens(max_tokens);
@@ -546,7 +547,7 @@ pub fn build_btw_agent_inner<M: CompletionModel + 'static>(
         }
     }
 
-    let mut builder = AgentBuilder::new(model)
+    let mut builder = AgentBuilder::new(crate::agent::image_relay::ImageRelayModel::new(model))
         .preamble(&preamble)
         .default_max_turns(BTW_MAX_TURNS)
         .max_tokens(max_tokens)

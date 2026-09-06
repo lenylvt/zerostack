@@ -30,7 +30,7 @@ fn build_explore_agent_inner<M: CompletionModel + 'static>(
     // OpenRouter `provider.order` pin for `anthropic/*` (see `AnyClient::completion_model`).
     additional_params: Option<serde_json::Value>,
     #[cfg(feature = "archmd")] architecture: Option<&str>,
-) -> Agent<M> {
+) -> Agent<crate::agent::image_relay::ImageRelayModel<M>> {
     let mut preamble = prompt::explore_prompt();
 
     #[cfg(feature = "archmd")]
@@ -83,7 +83,7 @@ fn build_explore_agent_inner<M: CompletionModel + 'static>(
     #[cfg(feature = "hooks")]
     let tools = crate::extras::hooks::wrap_from_global(tools, None);
 
-    let mut builder = AgentBuilder::new(model)
+    let mut builder = AgentBuilder::new(crate::agent::image_relay::ImageRelayModel::new(model))
         .preamble(&preamble)
         .default_max_turns(max_turns)
         .tools(tools);

@@ -11,6 +11,7 @@ use rig::streaming::StreamingChat;
 use tokio::sync::mpsc;
 
 use crate::agent::builder;
+use crate::agent::image_relay::ImageRelayModel;
 use crate::agent::prompt;
 use crate::agent::runner::{self, AgentRunner};
 use crate::auth::{AuthResolver, ProviderKind};
@@ -150,8 +151,8 @@ pub enum OpenAiModel {
 
 #[derive(Clone)]
 pub enum OpenAiAgent {
-    Responses(Agent<openai::responses_api::ResponsesCompletionModel>),
-    Completions(Agent<openai::completion::CompletionModel>),
+    Responses(Agent<ImageRelayModel<openai::responses_api::ResponsesCompletionModel>>),
+    Completions(Agent<ImageRelayModel<openai::completion::CompletionModel>>),
 }
 
 #[derive(Clone)]
@@ -634,11 +635,11 @@ pub enum AnyModel {
 
 #[derive(Clone)]
 pub enum AnyAgent {
-    OpenRouter(Agent<openrouter::completion::CompletionModel>),
+    OpenRouter(Agent<ImageRelayModel<openrouter::completion::CompletionModel>>),
     OpenAI(OpenAiAgent),
-    Anthropic(Agent<anthropic::completion::CompletionModel>),
-    Gemini(Agent<gemini::completion::CompletionModel>),
-    Ollama(Agent<ollama::CompletionModel>),
+    Anthropic(Agent<ImageRelayModel<anthropic::completion::CompletionModel>>),
+    Gemini(Agent<ImageRelayModel<gemini::completion::CompletionModel>>),
+    Ollama(Agent<ImageRelayModel<ollama::CompletionModel>>),
     /// Scripted test double (`rig::test_utils::MockCompletionModel`), used by
     /// headless main-loop integration tests; never constructed in production.
     #[cfg(test)]
