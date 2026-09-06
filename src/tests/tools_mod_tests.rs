@@ -174,10 +174,14 @@ fn find_files_descriptors_say_regex_not_glob() {
 
 #[test]
 fn system_and_explore_prompts_describe_find_files_as_regex() {
-    for prompt in [
+    #[cfg(feature = "subagents")]
+    let prompts = [
         crate::agent::prompt::SYSTEM_PROMPT,
         crate::extras::subagents::prompt::EXPLORE_PROMPT,
-    ] {
+    ];
+    #[cfg(not(feature = "subagents"))]
+    let prompts = [crate::agent::prompt::SYSTEM_PROMPT];
+    for prompt in prompts {
         let line = prompt
             .lines()
             .find(|l| l.contains("**find_files**"))

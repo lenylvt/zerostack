@@ -604,11 +604,6 @@ impl<'a> App<'a> {
         self.input.switcher_kind()
     }
 
-    #[cfg(test)]
-    pub(crate) fn current_prompt_name(&self) -> Option<String> {
-        self.ui.context.current_prompt_name.clone()
-    }
-
     pub(crate) async fn teardown(self) {
         self.running.store(false, Ordering::Relaxed);
         if let Some(h) = self.event_handle {
